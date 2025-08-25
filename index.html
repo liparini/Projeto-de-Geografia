@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Explorando a Ásia 🌏</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background: linear-gradient(to right, #f9f9ff, #d0f0ff);
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #start-screen, #quiz-container {
+      text-align: center;
+      background: #fff;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      width: 90%;
+      max-width: 600px;
+      animation: fadeIn 1s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 1.1rem;
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 15px;
+      margin: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    button:hover {
+      background-color: #2563eb;
+      transform: scale(1.05);
+    }
+
+    .opcao {
+      display: block;
+      width: 100%;
+      margin: 10px auto;
+    }
+
+    #pergunta {
+      font-size: 1.4rem;
+      margin-bottom: 15px;
+    }
+
+    #imagem {
+      max-width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    #feedback {
+      font-size: 1.1rem;
+      margin-top: 10px;
+      font-style: italic;
+      color: #16a34a;
+    }
+
+    .correto {
+      background-color: #16a34a !important;
+    }
+
+    .errado {
+      background-color: #dc2626 !important;
+    }
+
+    #pontuacao, #cronometro {
+      font-weight: bold;
+      font-size: 1rem;
+      margin-top: 10px;
+    }
+
+    #progress-bar {
+      width: 100%;
+      height: 10px;
+      background-color: #eee;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-bottom: 15px;
+    }
+
+    #progress {
+      height: 100%;
+      width: 0;
+      background-color: #3b82f6;
+      transition: width 0.5s;
+    }
+
+    #toggle-music {
+      background-color: #8b5cf6;
+    }
+
+    #toggle-music:hover {
+      background-color: #7c3aed;
+    }
+
+    #restart-btn {
+      display: none;
+      background-color: #10b981;
+      margin-top: 20px;
+    }
+
+    #restart-btn:hover {
+      background-color: #059669;
+    }
+  </style>
+</head>
+<body>
+  <div id="start-screen">
+    <h1>Explorando a Ásia 🌏</h1>
+    <button id="start-btn">Começar</button>
+  </div>
+
+  <div id="quiz-container" style="display:none">
+    <div id="progress-bar"><div id="progress"></div></div>
+    <h2 id="pergunta"></h2>
+    <img id="imagem" src="" alt="Imagem do local">
+    <div id="opcoes"></div>
+    <div id="feedback"></div>
+    <div id="cronometro">⏱️ Tempo restante: <span id="tempo">15</span>s</div>
+    <div id="pontuacao">Pontuação: 0</div>
+    <button id="toggle-music">Pausar Música 🔇</button>
+    <button id="restart-btn">Recomeçar</button>
+    <audio id="musica-fundo" loop>
+      <source src="musica-asia.mp3" type="audio/mp3">
+      Seu navegador não suporta áudio.
+    </audio>
+  </div>
+
+  <script>
+    const perguntas = [
+      {
+        pergunta: "Onde está localizado o Monte Fuji?",
+        imagem: "imagens/monte_fuji.jpg",
+        opcoes: ["China", "Coreia do Sul", "Japão", "Tailândia"],
+        correta: 2,
+        explicacao: "O Monte Fuji é uma montanha icônica do Japão."
+      },
+      {
+        pergunta: "Em que país você encontra o Taj Mahal?",
+        imagem: "imagens/taj_mahal.jpg",
+        opcoes: ["Índia", "Nepal", "Irã", "Turquia"],
+        correta: 0,
+        explicacao: "O Taj Mahal é um famoso mausoléu localizado na Índia."
+      },
+      {
+        pergunta: "Qual desses países tem a maior população da Ásia?",
+        imagem: "imagens/china.jpg",
+        opcoes: ["Índia", "China", "Indonésia", "Japão"],
+        correta: 1,
+        explicacao: "A China é o país mais populoso da Ásia."
+      }
+    ];
+
+    const startBtn = document.getElementById('start-btn');
+    const startScreen = document.getElementById('start-screen');
+    const quizContainer = document.getElementById('quiz-container');
+    const perguntaEl = document.getElementById('pergunta');
+    const imagemEl = document.getElementById('imagem');
+    const opcoesEl = document.getElementById('opcoes');
+    const feedbackEl = document.getElementById('feedback');
+    const pontuacaoEl = document.getElementById('pontuacao');
+    const cronometroEl = document.getElementById('tempo');
+    const musicaFundoEl = document.getElementById('musica-fundo');
+    const toggleMusicBtn = document.getElementById('toggle-music');
+    const progress = document.getElementById('progress');
+    const restartBtn = document.getElementById('restart-btn');
+
+    let indiceAtual = 0;
+    let pontuacao = 0;
+    let acertos = 0;
+    let erros = 0;
+    let tempo = 15;
+    let intervalo;
+
+    startBtn.addEventListener('click', async () => {
+      startScreen.style.display = 'none';
+      quizContainer.style.display = 'block';
+      restartBtn.style.display = 'none';
+      pontuacao = 0;
+      acertos = 0;
+      erros = 0;
+      indiceAtual = 0;
+      musicaFundoEl.volume = 0.2;
+      musicaFundoEl.muted = false;
+      try {
+        await musicaFundoEl.play();
+      } catch (err) {
+        console.warn("Erro ao tocar música:", err);
+      }
+      iniciarQuiz();
+    });
+
+    toggleMusicBtn.addEventListener('click', () => {
+      if (musicaFundoEl.paused) {
+        musicaFundoEl.play();
+        toggleMusicBtn.textContent = 'Pausar Música 🔇';
+      } else {
+        musicaFundoEl.pause();
+        toggleMusicBtn.textContent = 'Tocar Música ▶️';
+      }
+    });
+
+    restartBtn.addEventListener('click', () => {
+      pontuacao = 0;
+      acertos = 0;
+      erros = 0;
+      indiceAtual = 0;
+      feedbackEl.textContent = '';
+      pontuacaoEl.textContent = `Pontuação: ${pontuacao}`;
+      imagemEl.style.display = 'block';
+      cronometroEl.parentElement.style.display = 'block';
+      restartBtn.style.display = 'none';
+      iniciarQuiz();
+    });
+
+    function iniciarQuiz() {
+      mostrarPergunta();
+      iniciarCronometro();
+    }
+
+    function mostrarPergunta() {
+      const p = perguntas[indiceAtual];
+      perguntaEl.textContent = p.pergunta;
+      imagemEl.src = p.imagem;
+      imagemEl.style.display = 'block';
+      opcoesEl.innerHTML = '';
+      feedbackEl.textContent = '';
+
+      p.opcoes.forEach((opcao, i) => {
+        const btn = document.createElement('button');
+        btn.textContent = opcao;
+        btn.classList.add('opcao');
+        btn.onclick = () => verificarResposta(i);
+        opcoesEl.appendChild(btn);
+      });
+
+      progress.style.width = ((indiceAtual) / perguntas.length) * 100 + '%';
+    }
+
+    function verificarResposta(resposta) {
+      clearInterval(intervalo);
+      const p = perguntas[indiceAtual];
+      const botoes = document.querySelectorAll('.opcao');
+
+      botoes.forEach((btn, i) => {
+        if (i === p.correta) btn.classList.add('correto');
+        if (i === resposta && i !== p.correta) btn.classList.add('errado');
+        btn.disabled = true;
+      });
+
+      if (resposta === p.correta) {
+        feedbackEl.textContent = "✅ Correto!";
+        pontuacao += 10;
+        acertos++;
+      } else {
+        feedbackEl.textContent = `❌ Errado! ${p.explicacao}`;
+        erros++;
+      }
+
+      pontuacaoEl.textContent = `Pontuação: ${pontuacao}`;
+
+      setTimeout(() => {
+        indiceAtual++;
+        if (indiceAtual < perguntas.length) {
+          tempo = 15;
+          iniciarQuiz();
+        } else {
+          finalizarQuiz();
+        }
+      }, 5000);
+    }
+
+    function iniciarCronometro() {
+      cronometroEl.textContent = tempo;
+      intervalo = setInterval(() => {
+        tempo--;
+        cronometroEl.textContent = tempo;
+        if (tempo <= 0) {
+          clearInterval(intervalo);
+          verificarResposta(-1);
+        }
+      }, 1000);
+    }
+
+    function finalizarQuiz() {
+      perguntaEl.textContent = "Parabéns! Você finalizou o quiz.";
+      imagemEl.style.display = 'none';
+      opcoesEl.innerHTML = '';
+      feedbackEl.innerHTML = `
+        ✅ Acertos: ${acertos}<br>
+        ❌ Erros: ${erros}<br>
+        🏆 Pontuação Final: ${pontuacao}
+      `;
+      document.getElementById('cronometro').style.display = 'none';
+      restartBtn.style.display = 'inline-block';
+    }
+  </script>
+</body>
+</html>
